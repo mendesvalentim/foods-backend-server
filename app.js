@@ -108,4 +108,3 @@ app.get(datasnap.route('ConsultaCartao//:NumeroCartao/'), auth, function (req, r
 app.listen(1032, function () {
   console.log('Aguardando conexões na porta 1032...');
 });
-

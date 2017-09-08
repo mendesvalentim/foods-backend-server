@@ -90,6 +90,11 @@ function consultaProdutos(idGrupo, callback) {
     });
 }
 
+// TODO: Implementar
+function consultaProdutosId(idProduto, callback) {
+
+}
+
 function consultaAcompanhamento(codigoProduto, callback) {
     var tableStructure = [["IDCOMPLEMENTO",6,0,0,0,4,4,0,false,false,0,false,false],["DESCRICAO",1,1,0,0,31,30,0,true,false,0,false,false]];
     var sql = 
@@ -104,10 +109,18 @@ function consultaAcompanhamento(codigoProduto, callback) {
 }
 
 function consultaSabores(idProduto, callback) {
-    // 
-    //{"result":[{"table":[["IDSABOR",6,0,0,0,4,4,0,false,false,0,false,false],["DESCRICAO",1,1,0,0,41,40,0,true,false,0,false,false]],"IDSABOR":[23,28,24,29,35,27,36,123,30,25,34,144],"DESCRICAO":["COCA-COLA","COCA-COLA ZERO","FANTA LARANJA","FANTA UVA","FANTA LARANJA ZERO","GUARANA ANTARCTICA","GUARANA ANTARCTICA ZERO","GUARANA BLACK","SCHWEPPES","SPRITE","SPRITE ZERO","AGUA TONICA"]}]}
+    var tableStructure = [["IDSABOR",6,0,0,0,4,4,0,false,false,0,false,false],["DESCRICAO",1,1,0,0,41,40,0,true,false,0,false,false]];
+    var sql = "SELECT PRO.IDSABOR, ADI.DESCRICAO " +
+              "FROM RESSABOREPRODUTO PRO " +
+              "LEFT OUTER JOIN RESSABORES ADI ON (ADI.ID=PRO.IDSABOR) " +
+              "WHERE ADI.ATIVO = 1 AND PRO.IDPRODUTO=" + idProduto;
+    database.query(sql, function (result) {
+        result = datasnap.prepareResult(tableStructure, result);
+        callback(result);
+    });
 }
 
+// TODO: implementar
 function consultaCartao(numeroCartao, callback) {
     result = {
         "result": [
@@ -146,49 +159,41 @@ function gravaItens(itens, usuario, callback) {
         return;
     }
 
-    console.log('Gravando item: ', item);
-
+/*
+    Propriedades no primeiro item:
+      "cliente":"*ADICIONAL HAMBURGUER ",
+      "descMesa":"22",
+      "percServico":0,
+*/
     if (item.hasOwnProperty('descMesa')) {
-        console.log('Atualizando dados mesa...');
-        database.execute('UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO=? WHERE C.idlocalconsumo=?', 
+        console.log('Atualizando dados mesa...', item.ocupantes, item.descMesa, item.idMesa);
+        database.execute("UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO='?' WHERE C.idlocalconsumo=?", 
                          [item.ocupantes, item.descMesa, item.idMesa]);
-        database.execute('UPDATE RESMESA SET OBSERVACAO=? WHERE DESCRICAO=?', [item.cliente, item.idMesa]);
+        database.execute("UPDATE RESMESA SET OBSERVACAO='?' WHERE DESCRICAO='?'", [item.cliente, item.idMesa]);
     }
 
+    // define alguns valores padrão para o caso da propriedade não estar setada
+    item.obs = item.obs || ''; // só existe se o adicional for definido no produto
+    item.sabores = item.sabores || '';
+
+    console.log('Gravando item: ', item, usuario);
+
     // lançar item em lctoconsumo
-    database.execute('INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, '+
-                     'SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) ' +
-                     'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                     [item.idMesa, usuario, item.idProduto, item.qtde, '', item.ocupantes, '', item.produto, item.preco, item.meiaPorcao, item.descMesa]);
+    database.execute("INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, "+
+                     "SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     [item.idMesa, usuario, item.idProduto, item.qtde, item.obs, item.ocupantes, item.sabores, 
+                      item.produto, item.preco, item.meiaPorcao, item.descMesa]);
 
     gravaItens(itens, usuario, callback);
 }
-
-/*
-    Propriedades em todos os itens:
-
-            "meiaPorcao":"N",
-            "preco":8,
-            "produto":"*COSMEL ",
-            "qtde":1,
-            "total":8,
-            "id":0,
-            "idMesa":17,
-            "idProduto":282,
-            "ocupantes":0
-
-    Propriedades no primeiro item:
-
-            "cliente":"*ADICIONAL HAMBURGUER ",
-            "descMesa":"22",
-            "percServico":0,
-*/
 
 module.exports.validaCredenciais = validaCredenciais;
 module.exports.consultaMesas = consultaMesas;
 module.exports.consultaPedidosCons = consultaPedidosCons;
 module.exports.consultaGrupo = consultaGrupo;
 module.exports.consultaProdutos = consultaProdutos;
+module.exports.consultaProdutosId = consultaProdutosId;
 module.exports.consultaAcompanhamento = consultaAcompanhamento;
 module.exports.consultaCartao = consultaCartao;
 module.exports.consultaSabores = consultaSabores;
