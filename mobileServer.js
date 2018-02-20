@@ -15,7 +15,7 @@ function consultaMesas(callback) {
    var tableStructure = [["ID", 6, 0, 0, 0, 4, 4, 0, false, false, 0, false, false], ["DESCRICAO", 1, 1, 0, 0, 11, 10, 0, false, false, 0, false, false], ["DISPONIVEL", 6, 2, 0, 0, 4, 4, 0, false, false, 0, false, false], ["STATUS", 6, 3, 0, 0, 4, 4, 0, false, false, 0, false, false], ["OBSERVACAO", 1, 4, 0, 0, 51, 50, 0, true, false, 0, false, false]];
    var sql = "SELECT R.ID, R.DESCRICAO, R.DISPONIVEL, R.STATUS, COALESCE(R.OBSERVACAO,'') AS OBSERVACAO " +
              "FROM RESMESA R " +
-             "WHERE R.STATUS <> 3 AND R.DISPONIVEL = 1 AND R.PRACA like '%' ORDER BY R.ID";
+             "WHERE R.STATUS <> 3 AND R.DISPONIVEL = 1 AND R.ADM = 'M' AND R.PRACA like '%' ORDER BY R.ID";
    database.query(sql, function(result) {
        result = datasnap.prepareResult(tableStructure, result);
        callback(result);
