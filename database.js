@@ -1,24 +1,23 @@
-var Firebird = require('node-firebird');
+const Firebird = require('node-firebird');
 
-var options = {};
+const options = {};
 options.host = '127.0.0.1';
 options.port = 3050;
-options.database = '/ello/dados/1.2.46-contreras.ello';
-options.user = 'SYSDBA';
+options.database = '/ello/dados/CAMBALACHO_Novo.ello';
+options.user = 'MOBILE';
 options.password = 'masterkey';
 options.role = null;            // default
 options.pageSize = 4096;        // default when creating database
 
 console.log('Criando pool de conexões com Firebird...');
-var pool = Firebird.pool(5, options); // Cria 5 conexões
+const pool = Firebird.pool(5, options); // Cria 5 conexões
 
 function execute(queryInstruction, values) {
-    pool.get(function(err, db) {
-
-        if (err)
-            throw err;
-
+    pool.get(function (err, db) {
+        if (err) throw err;
+    
         db.query(queryInstruction, values, function(err, result) {
+            if (err) throw err;
             db.detach();
         });
     });
