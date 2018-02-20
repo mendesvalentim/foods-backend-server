@@ -76,9 +76,9 @@ app.get(datasnap.route('ConsultaSabores/:IdProduto/'), auth, function (req, res)
 app.get(datasnap.route('ConsultaProdutosId/:IdProduto/'), auth, function (req, res) {
     var idProduto = req.params.IdProduto;
     console.log('-> ConsultaProdutosId', idProduto);
-    result = {"result":[{"table":[["ID",6,0,0,0,4,4,0,true,false,0,false,false],["DESCRICAO",1,1,0,0,51,50,0,true,false,0,false,false],["PRECOVENDA",8,2,0,65532,34,18,0,true,false,0,false,false],["SABORES",6,3,0,0,4,4,0,true,false,0,false,false],["ADIC",6,4,0,0,4,4,0,true,false,0,false,false],["VENDEMEIAPORCAO",1,5,31,0,2,1,0,true,false,0,false,false],["VALORMEIAPORCAO",8,6,0,65534,34,18,0,true,false,0,false,false],["FRACIONADO",1,7,31,0,2,1,0,true,false,0,false,false]],"ID":[602327],"DESCRICAO":["*REFRIG.LATA SABORES 350ML"],"PRECOVENDA":[2.75],"SABORES":[12],"ADIC":[0],"VENDEMEIAPORCAO":["N"],"VALORMEIAPORCAO":[0],"FRACIONADO":["S"]}]}
-    //res.send({"result":[null]});
-    res.send(result);
+    mobileServer.consultaProdutoId(idProduto, function (result) {
+        res.send(result);
+    });    
 });
 
 // Envio diretamente ao selecionar o item

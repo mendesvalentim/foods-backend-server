@@ -90,6 +90,35 @@ function consultaProdutos(idGrupo, callback) {
     });
 }
 
+function consultaProdutoId(codigoProduto, callback) {
+    var tableStructure = [
+                    ["ID",6,0,0,0,4,4,0,true,false,0,false,false],
+                    ["DESCRICAO",1,1,0,0,51,50,0,true,false,0,false,false],
+                    ["PRECOVENDA",8,2,0,65532,34,18,0,true,false,0,false,false],
+                    ["SABORES",6,3,0,0,4,4,0,true,false,0,false,false],
+                    ["ADIC",6,4,0,0,4,4,0,true,false,0,false,false],
+                    ["VENDEMEIAPORCAO",1,5,31,0,2,1,0,true,false,0,false,false],
+                    ["VALORMEIAPORCAO",8,6,0,65534,34,18,0,true,false,0,false,false],
+                    ["FRACIONADO",1,7,31,0,2,1,0,true,false,0,false,false]
+                ];
+    var sql =
+        "SELECT                                                                                            " +
+        "PRO.ID,                                                                                           " +
+        "PRO.DESCRICAO,                                                                                    " +
+        "PRO.PRECOVENDA,                                                                                   " +
+        "coalesce((select count(*) from ressaboreproduto r where r.idproduto = PRO.ID), 0) sabores,        " +
+        "COALESCE((select count(*) from RESCOMPPRODUTO a where a.idproduto = pro.id),0) ADIC,              " +
+        "COALESCE(PRO.VENDEMEIAPORCAO,'') VENDEMEIAPORCAO,                                                 " +
+        "COALESCE(PRO.VALORMEIAPORCAO,0) VALORMEIAPORCAO,                                                  " +
+        "COALESCE(PRO.FRACIONADO,'') FRACIONADO                                                            " +
+        "FROM VWPRODUTOS PRO                                                                               " +
+        "LEFT OUTER JOIN ESTGRUPOS GRU ON (GRU.ID=PRO.IDGRUPO) WHERE PRO.CODIGOBARRAS = cast(" + codigoProduto +" as char(25))" ;     
+    database.query(sql, function (result) {
+        result = datasnap.prepareResult(tableStructure, result);
+        callback(result);
+    });    
+}
+
 function consultaAcompanhamento(codigoProduto, callback) {
     var tableStructure = [["IDCOMPLEMENTO",6,0,0,0,4,4,0,false,false,0,false,false],["DESCRICAO",1,1,0,0,31,30,0,true,false,0,false,false]];
     var sql = 
@@ -104,64 +133,81 @@ function consultaAcompanhamento(codigoProduto, callback) {
 }
 
 function consultaSabores(idProduto, callback) {
-    // 
-    //{"result":[{"table":[["IDSABOR",6,0,0,0,4,4,0,false,false,0,false,false],["DESCRICAO",1,1,0,0,41,40,0,true,false,0,false,false]],"IDSABOR":[23,28,24,29,35,27,36,123,30,25,34,144],"DESCRICAO":["COCA-COLA","COCA-COLA ZERO","FANTA LARANJA","FANTA UVA","FANTA LARANJA ZERO","GUARANA ANTARCTICA","GUARANA ANTARCTICA ZERO","GUARANA BLACK","SCHWEPPES","SPRITE","SPRITE ZERO","AGUA TONICA"]}]}
+    var tableStructure = [
+                    ["IDSABOR",6,0,0,0,4,4,0,false,false,0,false,false],
+                    ["DESCRICAO",1,1,0,0,41,40,0,true,false,0,false,false]
+    ];
+    var sql =
+        "SELECT                                               "+
+        "PRO.IDSABOR,                                         "+
+        "ADI.DESCRICAO                                        "+
+        "FROM RESSABOREPRODUTO PRO                            "+
+        "LEFT OUTER JOIN RESSABORES ADI ON(ADI.ID=PRO.IDSABOR)"+
+        "WHERE ADI.ATIVO = 1 AND PRO.IDPRODUTO = " + idProduto; 
+    database.query(sql, function (result) {
+        result = datasnap.prepareResult(tableStructure, result);        
+        callback(result);
+    });        
 }
 
 function consultaCartao(numeroCartao, callback) {
-    result = {
-        "result": [
-            {
-                "table": [ 
+    var tableStructure = [ 
                     ["ID"          , 6, 0, 0, 0, 4 , 4,  0, false, false, 0, false, false],
                     ["DESCRICAO"   , 1, 1, 0, 0, 11, 10, 0, false, false, 0, false, false],
                     ["DISPONIVEL"  , 6, 2, 0, 0, 4 , 4,  0, false, false, 0, false, false],
                     ["STATUS"      , 6, 3, 0, 0, 4 , 4,  0, false, false, 0, false, false],
                     ["OBSERVACAO"  , 1, 4, 0, 0, 51, 50, 0, true , false, 0, false, false]
-                ]                  ,
-                "ID":[17]          ,
-                "DESCRICAO":["17"] ,
-                "DISPONIVEL":[1]   ,
-                "STATUS":[0]       ,
-                "OBSERVACAO":[""]
-            }
-        ]
-    };
-    callback(result);
+                ];
+    var sql =    
+        "SELECT R.ID,R.DESCRICAO,R.DISPONIVEL, R.STATUS ,              " +
+        "coalesce(R.OBSERVACAO,'') as OBSERVACAO FROM RESMESA R        "+ 
+        "WHERE R.STATUS <> 3 AND R.DISPONIVEL = 1 AND R.PRACA like '%' " +
+        "and R.DESCRICAO = " + numeroCartao + " ORDER BY R.ID " ;
+    database.query(sql, function (result) {
+        result = datasnap.prepareResult(tableStructure, result);        
+        callback(result);
+    });    
 }
 
 function enviarItem(parameters, callback) {
-    var itens = parameters[0];
-    itens.reverse();
-    gravaItens(itens, parameters[1], function () {
+    const itens = parameters[0];
+
+    database.pool.get(function (err, db) {
+        if (err) throw err;
+
+        gravaItem(itens, parameters[1], db);
+    
         callback({"result": ["Item enviado com sucesso"]});
+
+        db.detach();
     });
 }
 
-function gravaItens(itens, usuario, callback) {
-    item = itens.pop();
+function gravaItem(itens, usuario, db) {
+    const item = itens.shift();
 
-    if (item==undefined) {
-        callback();
+    if (item === undefined) {
         return;
     }
 
-    console.log('Gravando item: ', item);
+    console.log('Gravando item: ', item.produto);
+    const descMesa = item.descMesa || '';
 
-    if (item.hasOwnProperty('descMesa')) {
+    if (descMesa !== '') {
         console.log('Atualizando dados mesa...');
-        database.execute('UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO=? WHERE C.idlocalconsumo=?', 
-                         [item.ocupantes, item.descMesa, item.idMesa]);
-        database.execute('UPDATE RESMESA SET OBSERVACAO=? WHERE DESCRICAO=?', [item.cliente, item.idMesa]);
+        db.query('UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO=? WHERE idlocalconsumo=?', 
+                 [item.ocupantes, descMesa, item.idMesa], console.log);
+        db.query('UPDATE RESMESA C SET C.OBSERVACAO = ?  WHERE C.DESCRICAO = ?', [descMesa, item.idMesa], console.log);
     }
-
+    
     // lançar item em lctoconsumo
-    database.execute('INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, '+
-                     'SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) ' +
-                     'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                     [item.idMesa, usuario, item.idProduto, item.qtde, '', item.ocupantes, '', item.produto, item.preco, item.meiaPorcao, item.descMesa]);
-
-    gravaItens(itens, usuario, callback);
+    db.query('INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, '+
+             'SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) ' +
+             'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+             [item.idMesa, usuario, item.idProduto, item.qtde, '', item.ocupantes, '', 
+             item.produto, item.preco, item.meiaPorcao, descMesa], function (err, result) {
+                 gravaItem(itens, usuario, db);
+             });
 }
 
 /*
@@ -192,5 +238,6 @@ module.exports.consultaProdutos = consultaProdutos;
 module.exports.consultaAcompanhamento = consultaAcompanhamento;
 module.exports.consultaCartao = consultaCartao;
 module.exports.consultaSabores = consultaSabores;
-module.exports.enviarItem = enviarItem
+module.exports.enviarItem = enviarItem;
+module.exports.consultaProdutoId = consultaProdutoId;
 
