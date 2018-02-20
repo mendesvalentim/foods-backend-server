@@ -6,9 +6,10 @@
   "dependencies": {
     "basic-auth": "^1.0.4",
     "body-parser": "^1.15.2",
-    "iconv-lite": "^0.4.13",
     "express": "^4.13.4",
-    "node-firebird": "^0.7.5"
+    "iconv-lite": "^0.4.13",
+    "mbl": "^1.2.9",
+    "node-firebird": "git+https://github.com/hgourvest/node-firebird.git"
   },
   "devDependencies": {},
   "scripts": {
