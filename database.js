@@ -15,15 +15,23 @@ const pool = Firebird.pool(5, options); // Cria 5 conexões
 function execute(queryInstruction, values) {
     pool.get(function (err, db) {
         if (err) throw err;
-    
-        db.query(queryInstruction, values, function(err, result) {
-            if (err) throw err;
-            db.detach();
-        });
-    });
-}
 
-//pool.destroy();
+        db.transaction(Firebird.ISOLATION_READ_COMMITED, function(err, transaction) {
+            transaction.query(queryInstruction, values, function(err, result) {
+                if (err) {
+                    transaction.rollback();
+                    return;
+                }
+                        transaction.commit(function(err) {
+                    if (err)
+                        transaction.rollback();
+                    else
+                        db.detach();
+                });                
+            });
+        });     
+    });
+};
 
 function queryDatabase(queryInstruction, callback) {
     pool.get(function(err, db) {

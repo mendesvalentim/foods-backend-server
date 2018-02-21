@@ -171,44 +171,37 @@ function consultaCartao(numeroCartao, callback) {
 
 function enviarItem(parameters, callback) {
     const itens = parameters[0];
-
-    database.pool.get(function (err, db) {
-        if (err) throw err;
-
-        gravaItem(itens, parameters[1], db);
     
-        callback({"result": ["Item enviado com sucesso"]});
+    for (i = 0; i < itens.length; i++) { 
+        if (itens[i].hasOwnProperty('descMesa')) {
+            descMesa = itens[i].descMesa
+        };    
+        gravaItem(itens[i], parameters[1], descMesa );
+        atualizaMesa(itens[i], descMesa);
+    };
+     callback({"result": ["Item enviado com sucesso"]});
+};
 
-        db.detach();
-    });
-}
-
-function gravaItem(itens, usuario, db) {
-    const item = itens.shift();
-
-    if (item === undefined) {
-        return;
-    }
+function gravaItem(item, usuario, descMesa) {
 
     console.log('Gravando item: ', item.produto);
-    const descMesa = item.descMesa || '';
 
+    database.execute('INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, '+
+    'SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) ' +
+    'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    [item.idMesa, usuario, item.idProduto, item.qtde, '', item.ocupantes, '', 
+    item.produto, item.preco, item.meiaPorcao, descMesa]);
+};
+
+ function atualizaMesa(item, descMesa){   
     if (descMesa !== '') {
         console.log('Atualizando dados mesa...');
-        db.query('UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO=? WHERE idlocalconsumo=?', 
-                 [item.ocupantes, descMesa, item.idMesa], console.log);
-        db.query('UPDATE RESMESA C SET C.OBSERVACAO = ?  WHERE C.DESCRICAO = ?', [descMesa, item.idMesa], console.log);
-    }
-    
-    // lançar item em lctoconsumo
-    db.query('INSERT INTO LCTOCONSUMO (IDLOCALCONSUMO, USUARIO, IDPRODUTO, QTDE, OBSERVACAO, OCUPANTES, '+
-             'SABORES, IDENTIFICACAO, VALORUNITARIO, MEIAPORCAO, IDENTIFICACAOMESA) ' +
-             'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-             [item.idMesa, usuario, item.idProduto, item.qtde, '', item.ocupantes, '', 
-             item.produto, item.preco, item.meiaPorcao, descMesa], function (err, result) {
-                 gravaItem(itens, usuario, db);
-             });
-}
+
+        database.execute('UPDATE lctoconsumo SET ocupantes=?, IDENTIFICACAO=? WHERE idlocalconsumo=?', 
+                 [item.ocupantes, descMesa, item.idMesa]);
+        database.execute('UPDATE RESMESA C SET C.OBSERVACAO = ?  WHERE C.DESCRICAO = ?', [descMesa, item.idMesa]);
+    };
+};
 
 /*
     Propriedades em todos os itens:
