@@ -23,8 +23,17 @@ app.get(datasnap.route('EchoString/ABC/'), auth, function (req, res) {
 
 // Rota para obter a lista de mesas disponíveis/consumindo
 app.get(datasnap.route('ConsultaMesas//'), auth, function (req, res) {
+    var praca = req.params.praca;
     console.log('-> ConsultaMesas');
-    mobileServer.consultaMesas(function(result) {
+    mobileServer.consultaMesas(praca, function(result) {
+        res.send(result);
+    });
+});
+
+app.get(datasnap.route('ConsultaMesas/:praca'), auth, function (req, res) {
+    const praca = req.params.praca;
+    console.log('-> ConsultaMesas ' + praca);
+    mobileServer.consultaMesas(praca, function(result) {
         res.send(result);
     });
 });
