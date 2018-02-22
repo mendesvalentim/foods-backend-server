@@ -2,9 +2,7 @@ var database = require('./database.js');
 var datasnap = require('./datasnap.js');
 
 function validaCredenciais(user, callback) {
-    var sql = "SELECT NomeCompleto FROM SysUsuario WHERE UPPER(Login)=UPPER(':login') AND SENHA=':senha' AND ATIVO=1";
-    sql = sql.replace(':login', user.name);
-    sql = sql.replace(':senha', user.pass);
+    var sql = `SELECT NomeCompleto FROM SysUsuario WHERE UPPER(Login)=UPPER('${user.name}') AND SENHA='${user.pass}' AND ATIVO=1`;
     database.query(sql, function (result) {
         callback(result.length>0);
     });
